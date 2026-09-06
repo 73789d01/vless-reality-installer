@@ -9,5 +9,5 @@ fi
 if [[ -x /usr/local/bin/xray ]]; then
   rm -f /usr/local/bin/xray
 fi
-rm -f /usr/local/etc/xray/config.json
+rm -f /usr/local/etc/xray/config.json /usr/local/etc/xray/client.env
 echo "已停止并删除 Xray 服务及主配置；防火墙规则和备份文件未自动删除。"

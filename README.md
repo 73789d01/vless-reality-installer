@@ -11,7 +11,7 @@
 建议先下载、审阅，再执行：
 
 ```bash
-curl -fL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/你的用户名/仓库名/main/install.sh -o install.sh
+curl -fL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/73789d01/vless-reality-installer/main/install.sh -o install.sh
 less install.sh
 sudo bash install.sh
 ```
@@ -19,7 +19,7 @@ sudo bash install.sh
 确认脚本内容后，也可以使用一行命令：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/你的用户名/仓库名/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/73789d01/vless-reality-installer/main/install.sh | sudo bash
 ```
 
 脚本会交互式询问服务器地址、端口、Reality SNI 和 dest，并输出 VLESS 分享链接。也可以使用环境变量进行无交互安装：

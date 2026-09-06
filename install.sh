@@ -69,8 +69,17 @@ XRAY_BIN="$(command -v xray || true)"
 
 # Xray v26+ prints PrivateKey/Password (PublicKey); older releases print Private key/Public key.
 key_output="$($XRAY_BIN x25519 2>/dev/null)" || die "无法生成 Reality 密钥，请检查 Xray 版本"
-PRIVATE_KEY="$(printf '%s\n' "$key_output" | awk -F': *' '/^(PrivateKey|Private key):/ {print $2; exit}')"
-PUBLIC_KEY="$(printf '%s\n' "$key_output" | awk -F': *' '/^(Password( \\(PublicKey\\))?|PublicKey|Public key):/ {print $2; exit}')"
+PRIVATE_KEY="$(printf '%s\n' "$key_output" | awk '
+  index($0, "PrivateKey:") == 1 || index($0, "Private key:") == 1 {
+    sub(/^[^:]*:[[:space:]]*/, ""); print; exit
+  }')"
+PUBLIC_KEY="$(printf '%s\n' "$key_output" | awk '
+  index($0, "Password (PublicKey):") == 1 ||
+  index($0, "Password:") == 1 ||
+  index($0, "PublicKey:") == 1 ||
+  index($0, "Public key:") == 1 {
+    sub(/^[^:]*:[[:space:]]*/, ""); print; exit
+  }')"
 [[ -n "$PRIVATE_KEY" && -n "$PUBLIC_KEY" ]] || die "无法解析 Reality 密钥输出"
 
 install -d -m 0755 "$(dirname "$XRAY_CONFIG")"

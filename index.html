@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VLESS Reality 安装命令生成器</title>
+  <style>
+    :root{color-scheme:dark;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0b1020;color:#e8ecf8}
+    body{max-width:860px;margin:0 auto;padding:32px 18px;line-height:1.55}
+    .card{background:#141b31;border:1px solid #293455;border-radius:16px;padding:24px;box-shadow:0 12px 40px #0003}
+    h1{margin-top:0;font-size:clamp(1.7rem,4vw,2.5rem)}
+    .muted{color:#aeb9d6}.warning{border-left:4px solid #f5b942;background:#2a2415;padding:12px 14px;border-radius:8px;margin:18px 0}
+    label{display:block;margin:14px 0 6px;color:#c9d3ef}input{width:100%;box-sizing:border-box;background:#0e1528;color:#fff;border:1px solid #344163;border-radius:8px;padding:11px;font-size:1rem}
+    button{border:0;border-radius:8px;padding:11px 16px;background:#5b7cfa;color:#fff;font-weight:700;cursor:pointer;margin-top:18px}button.secondary{background:#33405f;margin-left:8px}
+    textarea{width:100%;box-sizing:border-box;min-height:92px;margin-top:16px;background:#080d1b;color:#dbe5ff;border:1px solid #344163;border-radius:8px;padding:12px;font-family:ui-monospace,monospace}
+    code{color:#b8c8ff}.small{font-size:.9rem}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>VLESS TCP Reality 安装命令</h1>
+    <p class="muted">生成指向你自己 Git 仓库的安装命令。网站不会收集 SSH 密码、私钥或 VPS 信息。</p>
+    <div class="warning"><strong>安全提示：</strong>执行远程脚本前，请先打开仓库审阅 <code>install.sh</code>。只在你拥有或获授权管理的 VPS 上使用。</div>
+    <label for="repo">GitHub 仓库（owner/repo）</label>
+    <input id="repo" value="你的用户名/仓库名" autocomplete="off" spellcheck="false">
+    <label for="branch">分支</label>
+    <input id="branch" value="main" autocomplete="off" spellcheck="false">
+    <button id="generate">生成命令</button><button class="secondary" id="copy" type="button">复制</button>
+    <textarea id="output" readonly aria-label="安装命令"></textarea>
+    <p class="muted small">生成的命令会在 VPS 上下载脚本，然后使用 sudo 执行。脚本会交互式询问地址、端口、SNI 和 dest。</p>
+  </main>
+  <script>
+    const repo = document.querySelector('#repo');
+    const branch = document.querySelector('#branch');
+    const output = document.querySelector('#output');
+    const safe = value => /^[A-Za-z0-9_.-]+$/.test(value);
+    function generate() {
+      const [owner, name] = repo.value.trim().split('/');
+      const ref = branch.value.trim();
+      if (!owner || !name || !safe(owner) || !safe(name) || !safe(ref)) {
+        output.value = '请输入有效的 owner/repo 和分支名，例如：octocat/vless-reality';
+        return;
+      }
+      const raw = `https://raw.githubusercontent.com/${owner}/${name}/${ref}/install.sh`;
+      output.value = `curl -fL --proto '=https' --tlsv1.2 ${raw} -o install.sh && less install.sh && sudo bash install.sh`;
+    }
+    document.querySelector('#generate').addEventListener('click', generate);
+    document.querySelector('#copy').addEventListener('click', async () => {
+      if (!output.value) generate();
+      if (output.value.startsWith('curl ')) {
+        await navigator.clipboard.writeText(output.value);
+        document.querySelector('#copy').textContent = '已复制';
+        setTimeout(() => document.querySelector('#copy').textContent = '复制', 1200);
+      }
+    });
+    generate();
+  </script>
+</body>
+</html>

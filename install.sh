@@ -117,7 +117,10 @@ cat > "$tmp_config" <<JSON
 }
 JSON
 
-"$XRAY_BIN" run -test -config "$tmp_config" >/dev/null || die "Xray 配置校验失败"
+if ! validation_output="$("$XRAY_BIN" run -test -config "$tmp_config" 2>&1)"; then
+  echo "$validation_output" >&2
+  die "Xray 配置校验失败，请根据上面的具体错误修正"
+fi
 install -m 0600 "$tmp_config" "$XRAY_CONFIG"
 systemctl enable xray >/dev/null
 systemctl restart xray

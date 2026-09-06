@@ -12,6 +12,14 @@ PORT_END=60000
 
 die() { echo "错误：$*" >&2; return 1; }
 need() { command -v "$1" >/dev/null 2>&1 || die "缺少命令 $1"; }
+prompt() {
+  local message="$1" variable="$2"
+  if [[ -r /dev/tty ]]; then
+    IFS= read -r -p "$message" "$variable" </dev/tty
+  else
+    IFS= read -r -p "$message" "$variable"
+  fi
+}
 valid_port() { [[ "$1" =~ ^[0-9]+$ ]] && ((1 <= 10#$1 && 10#$1 <= 65535)); }
 valid_uuid() { [[ "$1" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ ]]; }
 valid_hex() { [[ "$1" =~ ^[0-9a-fA-F]+$ ]]; }
@@ -147,19 +155,19 @@ install_xray() {
 }
 ask_values() {
   SERVER_ADDRESS="${SERVER_ADDRESS:-$(curl -4fsS --max-time 5 https://api.ipify.org 2>/dev/null || true)}"
-  read -r -p "服务器公网 IP 或域名 [${SERVER_ADDRESS:-必填}]: " input
+  prompt "服务器公网 IP 或域名 [${SERVER_ADDRESS:-必填}]: " input
   SERVER_ADDRESS="${input:-$SERVER_ADDRESS}"
   [[ -n "$SERVER_ADDRESS" ]] && valid_host "$SERVER_ADDRESS" || die "服务器地址格式不正确"
   PORT="${PORT:-$(find_available_port)}"
-  read -r -p "服务端口 [${PORT}]: " input
+  prompt "服务端口 [${PORT}]: " input
   PORT="${input:-$PORT}"
   valid_port "$PORT" || die "端口格式不正确"
   SNI="${SNI:-$DEFAULT_SNI}"
-  read -r -p "Reality SNI [${SNI}]: " input
+  prompt "Reality SNI [${SNI}]: " input
   SNI="${input:-$SNI}"
   valid_sni "$SNI" || die "SNI 格式不正确"
   DEST="${DEST:-${SNI}:443}"
-  read -r -p "Reality dest [${DEST}]: " input
+  prompt "Reality dest [${DEST}]: " input
   DEST="${input:-$DEST}"
   valid_dest "$DEST" || die "dest 格式不正确"
 }
@@ -204,7 +212,7 @@ show_info() {
     echo "VLESS 链接：vless://${uuid}@${address}:${port}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=${sni}&fp=chrome&pbk=${public_key}&sid=${short_id}&type=tcp#reality"
 }
 uninstall_flow() {
-  read -r -p "确认卸载？输入 YES 继续： " confirm
+  prompt "确认卸载？输入 YES 继续： " confirm
   [[ "$confirm" == "YES" ]] || { echo "已取消"; return; }
   systemctl disable --now xray 2>/dev/null || true
   rm -f "$XRAY_SERVICE" /usr/local/bin/xray "$XRAY_CONFIG" "$XRAY_META"
@@ -217,9 +225,9 @@ modify_flow() {
   old_port="$(config_port)"; old_sni="$(config_value serverNames "$DEFAULT_SNI")"
   old_dest="$(config_value target "${old_sni}:443")"; old_uuid="$(config_uuid)"
   PORT="$old_port"; SNI="$old_sni"; DEST="$old_dest"; UUID="$old_uuid"
-  read -r -p "新端口 [${PORT}，回车保持]: " answer; PORT="${answer:-$PORT}"
-  read -r -p "新 SNI [${SNI}，回车保持]: " answer; SNI="${answer:-$SNI}"
-  read -r -p "新 dest [${DEST}，回车保持]: " answer; DEST="${answer:-$DEST}"
+  prompt "新端口 [${PORT}，回车保持]: " answer; PORT="${answer:-$PORT}"
+  prompt "新 SNI [${SNI}，回车保持]: " answer; SNI="${answer:-$SNI}"
+  prompt "新 dest [${DEST}，回车保持]: " answer; DEST="${answer:-$DEST}"
   valid_port "$PORT" || die "端口格式不正确"
   valid_sni "$SNI" || die "SNI 格式不正确"
   valid_dest "$DEST" || die "dest 格式不正确"
@@ -257,15 +265,15 @@ toolbox() {
     echo "2) 查看状态和配置"
     echo "3) 卸载"
     echo "TZ) 修复 / 修改 / 密钥 / 日志"
-    echo "0) 退出"
-    read -r -p "请输入命令： " command
+    echo "4) 退出"
+    prompt "请输入命令： " command
     case "${command^^}" in
       1) install_flow ;;
       2) show_info ;;
       3) uninstall_flow ;;
       TZ)
         echo "1) 修复服务  2) 修改配置  3) 重新生成密钥  4) 查看日志  0) 返回"
-        read -r -p "请选择： " command
+        prompt "请选择： " command
         case "$command" in
           1) repair_flow ;;
           2) modify_flow ;;
@@ -274,8 +282,8 @@ toolbox() {
           0|"") ;;
           *) echo "无效选项" ;;
         esac ;;
-      0|"") break ;;
-      *) echo "无效命令，请输入 1、2、3、TZ 或 0" ;;
+      4|0|"") break ;;
+      *) echo "无效命令，请输入 1、2、3、TZ 或 4" ;;
     esac
   done
 }

@@ -4,6 +4,7 @@ set -Eeuo pipefail
 
 XRAY_INSTALLER_URL="${XRAY_INSTALLER_URL:-https://github.com/XTLS/Xray-install/raw/main/install-release.sh}"
 XRAY_CONFIG="/usr/local/etc/xray/config.json"
+XRAY_SERVICE="/etc/systemd/system/xray.service"
 
 die() { echo "错误：$*" >&2; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || die "缺少命令 $1，请先安装后重试"; }
@@ -26,6 +27,7 @@ need awk
 need grep
 need systemctl
 need install
+need mktemp
 
 SERVER_ADDRESS="${SERVER_ADDRESS:-}"
 if [[ -z "$SERVER_ADDRESS" ]]; then
@@ -87,7 +89,7 @@ if [[ -f "$XRAY_CONFIG" ]]; then
   cp -a "$XRAY_CONFIG" "${XRAY_CONFIG}.bak.$(date +%Y%m%d%H%M%S)"
 fi
 
-tmp_config="$(mktemp)"
+tmp_config="$(mktemp "${TMPDIR:-/tmp}/xray-config.XXXXXX.json")"
 trap 'rm -f "$tmp_installer" "$tmp_config"' EXIT
 cat > "$tmp_config" <<JSON
 {
@@ -117,13 +119,41 @@ cat > "$tmp_config" <<JSON
 }
 JSON
 
-if ! validation_output="$("$XRAY_BIN" run -test -config "$tmp_config" 2>&1)"; then
+if ! validation_output="$("$XRAY_BIN" run -test -format json -config "$tmp_config" 2>&1)"; then
   echo "$validation_output" >&2
   die "Xray 配置校验失败，请根据上面的具体错误修正"
 fi
 install -m 0600 "$tmp_config" "$XRAY_CONFIG"
+
+# The official installer can skip the service unit on some distributions.
+# Install a small, explicit unit so the config path is always unambiguous.
+cat > "$XRAY_SERVICE" <<UNIT
+[Unit]
+Description=Xray Service
+Documentation=https://github.com/XTLS/Xray-core
+After=network.target nss-lookup.target
+
+[Service]
+User=root
+ExecStart=${XRAY_BIN} run -config ${XRAY_CONFIG}
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=1048576
+WorkingDirectory=$(dirname "$XRAY_BIN")
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+chmod 0644 "$XRAY_SERVICE"
+
+systemctl daemon-reload
 systemctl enable xray >/dev/null
 systemctl restart xray
+if ! systemctl is-active --quiet xray; then
+  systemctl --no-pager --full status xray >&2 || true
+  journalctl -u xray -n 30 --no-pager >&2 || true
+  die "Xray 服务启动失败"
+fi
 systemctl --no-pager --full status xray | sed -n '1,12p'
 
 echo

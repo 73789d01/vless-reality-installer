@@ -11,7 +11,7 @@
 建议先下载、审阅，再执行：
 
 ```bash
-curl -fL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/73789d01/vless-reality-installer/main/install.sh -o install.sh
+curl -fL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/你的用户名/仓库名/main/install.sh -o install.sh
 less install.sh
 sudo bash install.sh
 ```
@@ -19,7 +19,7 @@ sudo bash install.sh
 确认脚本内容后，也可以使用一行命令：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/73789d01/vless-reality-installer/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/你的用户名/仓库名/main/install.sh | sudo bash
 ```
 
 脚本会交互式询问服务器地址、端口、Reality SNI 和 dest，并输出 VLESS 分享链接。也可以使用环境变量进行无交互安装：
@@ -31,7 +31,7 @@ sudo env SERVER_ADDRESS=203.0.113.10 PORT=443 SNI=www.cloudflare.com bash instal
 ## VPS 要求
 
 - Linux VPS，root 或可用 sudo 的账号
-- `curl`、`openssl`、`systemctl`
+- `curl`、`openssl`、`systemctl`、`mktemp`
 - 能访问 GitHub 下载 Xray 官方安装器
 - 云安全组和系统防火墙放行服务端口（默认 TCP 443）
 
@@ -42,6 +42,7 @@ sudo env SERVER_ADDRESS=203.0.113.10 PORT=443 SNI=www.cloudflare.com bash instal
 - `config.json` 含私钥和 UUID，权限为 `0600`，不要公开提交。
 - 分享链接包含客户端凭据，请当作密码保管。
 - 安装器 URL 默认指向 XTLS/Xray-install 官方仓库；如需固定版本，应在审阅后锁定 URL 或提交哈希校验。
+- 脚本会自行创建 `/etc/systemd/system/xray.service`，并明确使用 `/usr/local/etc/xray/config.json`，兼容官方安装器未创建 service 文件的发行版。
 - 脚本不会自动修改防火墙，也不会删除备份配置。
 
 ## 卸载

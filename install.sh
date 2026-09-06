@@ -55,9 +55,9 @@ config_value() {
   [[ -n "$value" ]] || value="$(sed -nE "s/.*\"${key}\"[[:space:]]*:[[:space:]]*\[\"([^\"]+)\".*/\1/p" "$XRAY_CONFIG" | head -n1)"
   printf '%s' "${value:-$default}"
 }
-config_port() { sed -nE 's/.*"port"[[:space:]]*:[[:space:]]*([0-9]+).*/\1/p' "$XRAY_CONFIG" | head -n1; }
-config_uuid() { sed -nE 's/.*"id"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$XRAY_CONFIG" | head -n1; }
-config_private_key() { sed -nE 's/.*"privateKey"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$XRAY_CONFIG" | head -n1; }
+config_port() { [[ -f "$XRAY_CONFIG" ]] || return 0; sed -nE 's/.*"port"[[:space:]]*:[[:space:]]*([0-9]+).*/\1/p' "$XRAY_CONFIG" | head -n1; }
+config_uuid() { [[ -f "$XRAY_CONFIG" ]] || return 0; sed -nE 's/.*"id"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$XRAY_CONFIG" | head -n1; }
+config_private_key() { [[ -f "$XRAY_CONFIG" ]] || return 0; sed -nE 's/.*"privateKey"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$XRAY_CONFIG" | head -n1; }
 write_service() {
   cat > "$XRAY_SERVICE" <<UNIT
 [Unit]
@@ -147,11 +147,19 @@ JSON
 install_xray() {
   local tmp
   tmp="$(mktemp)"
-  curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 "$XRAY_INSTALLER_URL" -o "$tmp"
+  if ! curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 "$XRAY_INSTALLER_URL" -o "$tmp"; then
+    rm -f "$tmp"
+    die "下载 Xray 官方安装器失败"
+  fi
   grep -q "Xray" "$tmp" || { rm -f "$tmp"; die "下载内容不像 Xray 官方安装器"; }
-  bash "$tmp" install
+  echo "正在执行 Xray 官方安装器..."
+  if ! bash "$tmp" install </dev/null; then
+    rm -f "$tmp"
+    die "Xray 官方安装器执行失败，请检查上方输出"
+  fi
   rm -f "$tmp"
   get_xray_bin
+  "$XRAY_BIN" version >/dev/null 2>&1 || die "Xray 安装器执行完成，但未找到可用的 Xray 二进制"
 }
 ask_values() {
   SERVER_ADDRESS="${SERVER_ADDRESS:-$(curl -4fsS --max-time 5 https://api.ipify.org 2>/dev/null || true)}"
@@ -186,6 +194,10 @@ install_flow() {
 }
 show_info() {
   local port uuid sni dest short_id public_key address
+  if [[ ! -f "$XRAY_CONFIG" ]]; then
+    echo "尚未检测到 Xray 配置，请先选择 1 安装，或输入 TZ 进入修复。"
+    return 0
+  fi
   port="$(config_port)"; uuid="$(config_uuid)"
   sni="$(config_value serverNames "$DEFAULT_SNI")"
   dest="$(config_value target "${sni}:443")"

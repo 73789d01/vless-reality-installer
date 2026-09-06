@@ -101,11 +101,11 @@ cat > "$tmp_config" <<JSON
       "decryption": "none"
     },
     "streamSettings": {
-      "network": "tcp",
+      "network": "raw",
       "security": "reality",
       "realitySettings": {
         "show": false,
-        "dest": "${DEST}",
+        "target": "${DEST}",
         "xver": 0,
         "serverNames": ["${SNI}"],
         "privateKey": "${PRIVATE_KEY}",

@@ -11,7 +11,7 @@
 建议先下载、审阅，再执行：
 
 ```bash
-curl -fL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/你的用户名/仓库名/main/install.sh -o install.sh
+curl -fL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/73789d01/vless-reality-installer/main/install.sh -o install.sh
 less install.sh
 sudo bash install.sh
 ```
@@ -19,7 +19,7 @@ sudo bash install.sh
 确认脚本内容后，也可以使用一行命令：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/你的用户名/仓库名/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/73789d01/vless-reality-installer/main/install.sh | sudo bash
 ```
 
 脚本启动后进入交互式工具箱：
@@ -33,7 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/你的用户名/仓库名/main/inst
 脚本通过 `/dev/tty` 读取菜单输入，因此可以直接使用下面的命令启动，下载完成后会停留在菜单中：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/你的用户名/仓库名/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/73789d01/vless-reality-installer/main/install.sh | sudo bash
 ```
 
 此时直接输入 `TZ` 即可进入维护菜单。
@@ -80,7 +80,7 @@ sudo env SERVER_ADDRESS=203.0.113.10 PORT=23456 SNI=www.cloudflare.com bash inst
 ## 卸载
 
 ```bash
-curl -fL https://raw.githubusercontent.com/你的用户名/仓库名/main/uninstall.sh | sudo bash
+curl -fL https://raw.githubusercontent.com/73789d01/vless-reality-installer/main/uninstall.sh | sudo bash
 ```
 
 卸载脚本会停止 Xray 并删除主配置，但不会自动删除防火墙规则和备份文件。

@@ -67,9 +67,10 @@ XRAY_BIN="$(command -v xray || true)"
 [[ -x "$XRAY_BIN" ]] || XRAY_BIN="/usr/local/bin/xray"
 [[ -x "$XRAY_BIN" ]] || die "找不到 xray 可执行文件"
 
+# Xray v26+ prints PrivateKey/Password; older releases print Private key/Public key.
 key_output="$($XRAY_BIN x25519 2>/dev/null)" || die "无法生成 Reality 密钥，请检查 Xray 版本"
-PRIVATE_KEY="$(printf '%s\n' "$key_output" | awk -F': ' '/Private key/ {print $2; exit}')"
-PUBLIC_KEY="$(printf '%s\n' "$key_output" | awk -F': ' '/Public key/ {print $2; exit}')"
+PRIVATE_KEY="$(printf '%s\n' "$key_output" | awk -F': *' '/^(PrivateKey|Private key):/ {print $2; exit}')"
+PUBLIC_KEY="$(printf '%s\n' "$key_output" | awk -F': *' '/^(Password|PublicKey|Public key):/ {print $2; exit}')"
 [[ -n "$PRIVATE_KEY" && -n "$PUBLIC_KEY" ]] || die "无法解析 Reality 密钥输出"
 
 install -d -m 0755 "$(dirname "$XRAY_CONFIG")"
